@@ -21,6 +21,7 @@ const DEF_CFG = {
 export default function Dashboard() {
   const [pg, setPg] = useState('home')
   const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [cfg, setCfg] = useState(DEF_CFG)
   const [kb, setKb] = useState([])
   const [past, setPast] = useState([])
@@ -29,15 +30,32 @@ export default function Dashboard() {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => { bootstrap() }, [])
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        router.push('/')
+        return
+      }
+      setUser(session.user)
+      setLoading(false)
+      loadSettings()
+      loadKB()
+      loadPastRFPs()
+    })
 
-const bootstrap = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/'); return }
-    setUser(session.user)
-    await Promise.all([loadSettings(), loadKB(), loadPastRFPs()])
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        router.push('/')
+      } else if (session) {
+        setUser(session.user)
+        setLoading(false)
+      }
+    })
 
-  }
+    return () => subscription.unsubscribe()
+  }, [])
 
   const loadSettings = async () => {
     const { data } = await supabase.from('company_settings').select('*').single()
@@ -69,6 +87,17 @@ const bootstrap = async () => {
     setPg('editor')
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f2744' }}>
+        <div className="text-center">
+          <div className="text-white text-4xl mb-4">⟳</div>
+          <div className="text-white text-sm opacity-60">Loading RFP Studio...</div>
+        </div>
+      </div>
+    )
+  }
+
   const sharedProps = { cfg, setCfg, kb, setKb, past, setPast, wip, setWip, toast, supabase, user, openRFP, loadKB, loadPastRFPs, loadSettings }
 
   return (
@@ -83,7 +112,6 @@ const bootstrap = async () => {
         {pg === 'settings' && <SettingsView {...sharedProps} />}
       </div>
 
-      {/* Toast */}
       {notif && (
         <div className={`fixed bottom-5 right-5 px-5 py-3 rounded-2xl text-white text-sm font-medium shadow-2xl z-50 slideUp flex items-center gap-2 ${notif.err ? 'bg-red-500' : 'bg-emerald-500'}`}>
           {notif.err ? '⚠️' : '✓'} {notif.msg}
