@@ -1,14 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import Nav from '@/components/Nav'
-import HomeView from '@/components/HomeView'
-import NewRFPView from '@/components/NewRFPView'
-import EditorView from '@/components/EditorView'
-import KnowledgeBaseView from '@/components/KnowledgeBaseView'
-import PastRFPsView from '@/components/PastRFPsView'
-import SettingsView from '@/components/SettingsView'
+import { createClient } from '../../lib/supabase'
+import Nav from '../../components/Nav'
+import HomeView from '../../components/HomeView'
+import NewRFPView from '../../components/NewRFPView'
+import EditorView from '../../components/EditorView'
+import KnowledgeBaseView from '../../components/KnowledgeBaseView'
+import PastRFPsView from '../../components/PastRFPsView'
+import SettingsView from '../../components/SettingsView'
 
 const DEF_CFG = {
   company: 'Your Company Name',
