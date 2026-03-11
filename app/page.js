@@ -1,131 +1,69 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '../../lib/supabase'
-import Nav from '../../components/Nav'
-import HomeView from '../../components/HomeView'
-import NewRFPView from '../../components/NewRFPView'
-import EditorView from '../../components/EditorView'
-import KnowledgeBaseView from '../../components/KnowledgeBaseView'
-import PastRFPsView from '../../components/PastRFPsView'
-import SettingsView from '../../components/SettingsView'
+import { useState } from 'react'
+import { createClient } from '../lib/supabase'
 
-const DEF_CFG = {
-  company: 'Your Company Name',
-  tagline: 'Healthcare Real Estate Specialists',
-  primary_color: '#0f2744',
-  accent: '#c49a2a',
-  email: '', phone: '', website: '',
-}
-
-export default function Dashboard() {
-  const [pg, setPg] = useState('home')
-  const [user, setUser] = useState(null)
-  const [authChecked, setAuthChecked] = useState(false)
-  const [cfg, setCfg] = useState(DEF_CFG)
-  const [kb, setKb] = useState([])
-  const [past, setPast] = useState([])
-  const [wip, setWip] = useState(null)
-  const [notif, setNotif] = useState(null)
-  const router = useRouter()
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const supabase = createClient()
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        setUser(session.user)
-        setAuthChecked(true)
-        loadSettings()
-        loadKB()
-        loadPastRFPs()
-      } else if (event === 'SIGNED_OUT') {
-        router.push('/')
-      }
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     })
-
-    setTimeout(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          setUser(session.user)
-          setAuthChecked(true)
-          loadSettings()
-          loadKB()
-          loadPastRFPs()
-        } else {
-          setAuthChecked(true)
-        }
-      })
-    }, 1000)
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    if (authChecked && !user) {
-      router.push('/')
-    }
-  }, [authChecked, user])
-
-  const loadSettings = async () => {
-    const { data } = await supabase.from('company_settings').select('*').single()
-    if (data) setCfg({ ...DEF_CFG, ...data })
+    if (error) { setError(error.message); setLoading(false); return }
+    setSent(true)
+    setLoading(false)
   }
-
-  const loadKB = async () => {
-    const { data } = await supabase.from('knowledge_base').select('*').order('created_at', { ascending: false })
-    if (data) setKb(data)
-  }
-
-  const loadPastRFPs = async () => {
-    const { data } = await supabase.from('rfp_responses').select(`*, rfp_sections(*)`).order('created_at', { ascending: false })
-    if (data) setPast(data.map(r => ({ ...r, sections: r.rfp_sections || [] })))
-  }
-
-  const toast = (msg, err) => {
-    setNotif({ msg, err })
-    setTimeout(() => setNotif(null), 3500)
-  }
-
-  const signOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/')
-  }
-
-  const openRFP = (rfp) => {
-    setWip(rfp)
-    setPg('editor')
-  }
-
-  if (!authChecked || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#0f2744' }}>
-        <div className="text-center">
-          <div className="text-white text-4xl mb-4">⟳</div>
-          <div className="text-white text-sm opacity-60">Loading RFP Studio...</div>
-        </div>
-      </div>
-    )
-  }
-
-  const sharedProps = { cfg, setCfg, kb, setKb, past, setPast, wip, setWip, toast, supabase, user, openRFP, loadKB, loadPastRFPs, loadSettings }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
-      <Nav pg={pg} setPg={setPg} cfg={cfg} wip={wip} signOut={signOut} />
-      <div className="flex-1 overflow-auto">
-        {pg === 'home'     && <HomeView     {...sharedProps} setPg={setPg} />}
-        {pg === 'new'      && <NewRFPView   {...sharedProps} setPg={setPg} />}
-        {pg === 'editor'   && <EditorView   {...sharedProps} setPg={setPg} />}
-        {pg === 'kb'       && <KnowledgeBaseView {...sharedProps} />}
-        {pg === 'past'     && <PastRFPsView {...sharedProps} />}
-        {pg === 'settings' && <SettingsView {...sharedProps} />}
-      </div>
-
-      {notif && (
-        <div className={`fixed bottom-5 right-5 px-5 py-3 rounded-2xl text-white text-sm font-medium shadow-2xl z-50 slideUp flex items-center gap-2 ${notif.err ? 'bg-red-500' : 'bg-emerald-500'}`}>
-          {notif.err ? '⚠️' : '✓'} {notif.msg}
+    <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f2744 0%, #1a3a5c 60%, #0f2744 100%)' }}>
+      <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+      <div className="relative z-10 w-full max-w-sm mx-4">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-5 shadow-2xl" style={{ background: '#c49a2a' }}>
+            <span className="text-white text-2xl font-bold serif">R</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white serif mb-2">RFP Studio</h1>
+          <p className="text-slate-400 text-sm">Healthcare Real Estate · AI-Powered Responses</p>
         </div>
-      )}
+        <div className="bg-white rounded-3xl p-8 shadow-2xl">
+          {!sent ? (
+            <>
+              <h2 className="font-semibold text-slate-800 text-lg mb-1 serif">Sign in to your team</h2>
+              <p className="text-slate-400 text-sm mb-6">Enter your work email — we'll send a magic link. No password needed.</p>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1.5 uppercase tracking-wide">Work Email</label>
+                  <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder="you@yourcompany.com" required
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 bg-slate-50" />
+                </div>
+                {error && <p className="text-red-500 text-xs bg-red-50 rounded-xl px-3 py-2">{error}</p>}
+                <button type="submit" disabled={loading || !email}
+                  className="w-full text-white py-3 rounded-xl text-sm font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
+                  style={{ background: '#0f2744' }}>
+                  {loading ? <>⟳ Sending…</> : 'Send Magic Link →'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <div className="text-4xl mb-4">📬</div>
+              <h2 className="font-semibold text-slate-800 text-lg mb-2 serif">Check your email</h2>
+              <p className="text-slate-400 text-sm mb-4">We sent a sign-in link to <strong className="text-slate-700">{email}</strong>. Click it to access RFP Studio.</p>
+              <button onClick={() => setSent(false)} className="text-sm text-blue-500 hover:underline">Use a different email</button>
+            </div>
+          )}
+        </div>
+        <p className="text-center text-slate-600 text-xs mt-6 opacity-60">© {new Date().getFullYear()} RFP Studio · Internal team tool</p>
+      </div>
     </div>
   )
 }
